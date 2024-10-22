@@ -561,6 +561,56 @@ func gio_onKeys(h C.uintptr_t, cstr C.CFTypeRef, ti C.double, mods C.NSUInteger,
 	}
 }
 
+var lastModsOnFlagsChanged C.NSUInteger
+
+type onFlagsChangedLogicTableEntry struct {
+	modKeyMask C.NSUInteger
+	modKeyName key.Name
+}
+
+var onFlagsChangedLogicTable = []onFlagsChangedLogicTableEntry{
+	onFlagsChangedLogicTableEntry{
+		C.NSControlKeyMask,
+		key.NameCtrl,
+	},
+	onFlagsChangedLogicTableEntry{
+		C.NSAlternateKeyMask,
+		key.NameAlt,
+	},
+	onFlagsChangedLogicTableEntry{
+		C.NSShiftKeyMask,
+		key.NameShift,
+	},
+	onFlagsChangedLogicTableEntry{
+		C.NSCommandKeyMask,
+		key.NameCommand,
+	},
+}
+
+//export gio_onFlagsChanged
+func gio_onFlagsChanged(h C.uintptr_t, mods C.NSUInteger) {
+	w := windowFor(h)
+	for _, e := range onFlagsChangedLogicTable {
+		if mods&e.modKeyMask != 0 {
+			if lastModsOnFlagsChanged&e.modKeyMask == 0 {
+				w.ProcessEvent(key.Event{Name: e.modKeyName,
+					State: key.Press,
+				})
+			}
+
+			continue
+		}
+
+		if lastModsOnFlagsChanged&e.modKeyMask != 0 {
+			w.ProcessEvent(key.Event{Name: e.modKeyName,
+				State: key.Release,
+			})
+		}
+	}
+
+	lastModsOnFlagsChanged = mods
+}
+
 //export gio_onText
 func gio_onText(h C.uintptr_t, cstr C.CFTypeRef) {
 	str := nsstringToString(cstr)
