@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"runtime"
 
 	"gioui.org/f32"
 	f32internal "gioui.org/internal/f32"
@@ -21,6 +22,30 @@ import (
 	"gioui.org/io/transfer"
 	"gioui.org/op"
 )
+
+var Logger func(message string, args ...interface{})
+func log(message string, args ...interface{}) {
+	if Logger == nil {
+		return
+	}
+	Logger(message, args...)
+}
+
+
+var IssueReproducedCallback func()
+func issueReproduced() {
+	if IssueReproducedCallback == nil {
+		return
+	}
+	IssueReproducedCallback()
+}
+
+func stack() string {
+	buf := make([]byte, 3000)
+	sz := runtime.Stack(buf, false)
+	buf = buf[0:sz]
+	return string(buf)
+}
 
 // Router tracks the [io/event.Tag] identifiers of user interface widgets
 // and routes events to them. [Source] is its interface exposed to widgets.
@@ -174,6 +199,9 @@ func (q *Router) Source() Source {
 // Execute a command.
 func (s Source) Execute(c Command) {
 	if !s.Enabled() {
+		if _, ok := c.(clipboard.ReadCmd); ok {
+			log("gio: Source is not enabled")
+		}
 		return
 	}
 	s.r.execute(c)
@@ -481,12 +509,34 @@ func (q *Router) processEvent(e event.Event, system bool) {
 func (q *Router) execute(c Command) {
 	// The command can be executed immediately if event delivery is not frozen, and
 	// no event receiver has completed their event handling.
-	if !q.deferring {
+	if !q.deferring {		
+		if _, ok := c.(clipboard.ReadCmd); ok {
+			log("gio: Router is not deferring delivery")
+		}
 		ch := q.executeCommand(c)
 		immediate := true
+		if _, ok := c.(clipboard.ReadCmd); ok {
+			log("gio: executing command resulted in %d events\n", len(ch.events))
+			log("gio: router.cqueue.requested: %v\n", q.cqueue.requested)
+		}
+
+		// JEFF: This loop is not executed:
 		for _, e := range ch.events {
+			if _, ok := c.(clipboard.ReadCmd); ok {
+				log("gio: calling handler for event %#v\n", e)
+			}
 			h, ok := q.handlers[e.tag]
 			immediate = immediate && (!ok || !h.processedFilter.Matches(e.event))
+			if _, ok1 := c.(clipboard.ReadCmd); ok1 {
+				adj := "a"
+				if !ok {
+					adj = "no"
+				}
+				if _, ok := c.(clipboard.ReadCmd); ok {
+					log("gio: executing command produced event %#v. there was %s handler for it. Immediate is now %v",
+					e, adj, immediate)
+				}
+			}
 		}
 		if immediate {
 			// Hold on to the remaining events for state replay.
@@ -499,10 +549,24 @@ func (q *Router) execute(c Command) {
 			if len(q.changes) > 1 {
 				q.changes = q.changes[:1]
 			}
+			if _, ok := c.(clipboard.ReadCmd); ok {
+				log("gio: calling changeState with %d events", len(ch.events))
+			}
+			logInChangeState = true
 			q.changeState(nil, ch.state, ch.events)
+			logInChangeState = false
+			if _, ok := c.(clipboard.ReadCmd); ok {
+				log("gio: queueing %d events", len(evts))
+			}
 			q.Queue(evts...)
 			return
 		}
+		if _, ok := c.(clipboard.ReadCmd); ok {
+			log("gio: Router could not immediately deliver")
+		}
+	}
+	if _, ok := c.(clipboard.ReadCmd); ok {
+		log("gio: Router is deferring delivery")
 	}
 	q.deferring = true
 	q.commands = append(q.commands, c)
@@ -525,6 +589,9 @@ func (q *Router) lastState() inputState {
 func (q *Router) executeCommands() {
 	for _, c := range q.commands {
 		ch := q.executeCommand(c)
+		if _, ok := c.(clipboard.ReadCmd); ok {
+			log("gio: executing command from Router.executeCommands")
+		}
 		q.changeState(nil, ch.state, ch.events)
 	}
 	q.commands = nil
@@ -549,6 +616,7 @@ func (q *Router) executeCommand(c Command) stateChange {
 	case clipboard.WriteCmd:
 		q.cqueue.ProcessWriteClipboard(req)
 	case clipboard.ReadCmd:
+		log("gio: Router.executeCommand: executing clipboard.ReadCmd with state %#v and tag %p\n", state.clipboardState, req.Tag)
 		state.clipboardState = q.cqueue.ProcessReadClipboard(state.clipboardState, req.Tag)
 	case pointer.GrabCmd:
 		state.pointerState, evts = q.pointer.queue.grab(state.pointerState, req)
@@ -561,6 +629,7 @@ func (q *Router) executeCommand(c Command) stateChange {
 	return stateChange{state: state, events: evts}
 }
 
+var logInChangeState = false
 func (q *Router) changeState(e event.Event, state inputState, evts []taggedEvent) {
 	// Wrap pointer.DataEvent.Open functions to detect them not being called.
 	for i := range evts {
@@ -576,6 +645,11 @@ func (q *Router) changeState(e event.Event, state inputState, evts []taggedEvent
 			e.event = de
 		}
 	}
+	
+	if logInChangeState {
+		log("gio: Router.changeState called with %d changes\n", len(q.changes))
+	}
+	
 	// Initialize the first change to contain the current state
 	// and events that are bound for the current frame.
 	if len(q.changes) == 0 {
@@ -584,9 +658,15 @@ func (q *Router) changeState(e event.Event, state inputState, evts []taggedEvent
 	if e != nil && len(evts) > 0 {
 		// An event triggered events bound for user receivers. Add a state change to be
 		// able to redo the change in case of a command execution.
+		if logInChangeState {
+			log("gio: Router.changeState: adding a new change\n", len(q.changes))
+		}
 		q.changes = append(q.changes, stateChange{event: e, state: state, events: evts})
 	} else {
 		// Otherwise, merge with previous change.
+		if logInChangeState {
+			log("gio: Router.changeState: merging with existing changes\n")
+		}
 		prev := &q.changes[len(q.changes)-1]
 		prev.state = state
 		prev.events = append(prev.events, evts...)

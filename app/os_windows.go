@@ -29,7 +29,15 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/io/transfer"
+	"gioui.org/io/input"
 )
+
+func logf(message string, args ...interface{}) {
+	if input.Logger == nil {
+		return
+	}
+	input.Logger(message, args...)
+}
 
 type Win32ViewEvent struct {
 	HWND uintptr
@@ -674,7 +682,10 @@ func (w *window) NewContext() (context, error) {
 }
 
 func (w *window) ReadClipboard() {
-	w.readClipboard()
+	err := w.readClipboard()
+	if err != nil {
+		logf("gio: window.updateState: w.driver.ReadClipboard returned an error: %v", err)
+	}
 }
 
 func (w *window) readClipboard() error {
