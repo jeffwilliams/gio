@@ -39,7 +39,7 @@ func (q *clipboardQueue) ClipboardRequested(state clipboardState) bool {
 	req := len(state.receivers) > 0 && q.requested
 	q.requested = false
 	log("gio: clipboardQueue.ClipboardRequested: on return q.requested = false and len(state.receivers) = %d\n", len(state.receivers))
-	log("gio: stacktrace: %s\n", stack())
+	log("gio: stacktrace: %s\n", stack(false))
 	return req
 }
 
@@ -67,7 +67,7 @@ func (q *clipboardQueue) ProcessReadClipboard(state clipboardState, tag event.Ta
 
 	if !q.requested && slices.Contains(state.receivers, tag) {
 		log("gio: issue reproduced. ProcessReadClipboard was called when q.requested is false but state.receivers contains the tag\n")
-		log("gio: stacktrace: %s\n", stack())
+		log("gio: stacktrace: %s\n", stack(false))
 		issueReproduced()
 	}
 

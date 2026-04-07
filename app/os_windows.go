@@ -39,6 +39,14 @@ func logf(message string, args ...interface{}) {
 	input.Logger(message, args...)
 }
 
+var stacktraceBuf = make([]byte, 200000)
+func stack(allGoroutines bool) string {
+	buf := stacktraceBuf[:]
+	sz := runtime.Stack(buf, allGoroutines)
+	buf = buf[0:sz]
+	return string(buf)
+}
+
 type Win32ViewEvent struct {
 	HWND uintptr
 }
@@ -690,6 +698,8 @@ func (w *window) ReadClipboard() {
 
 func (w *window) readClipboard() error {
 	if err := windows.OpenClipboard(w.hwnd); err != nil {
+		logf("gio: window.readClipboard: windows.OpenClipboard failed with error: %v", err)
+		logf("gio: stacktrace: %s\n", stack(true))
 		return err
 	}
 	defer windows.CloseClipboard()

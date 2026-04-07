@@ -40,9 +40,10 @@ func issueReproduced() {
 	IssueReproducedCallback()
 }
 
-func stack() string {
-	buf := make([]byte, 3000)
-	sz := runtime.Stack(buf, false)
+var stacktraceBuf = make([]byte, 20000)
+func stack(allGoroutines bool) string {
+	buf := stacktraceBuf[:]
+	sz := runtime.Stack(buf, allGoroutines)
 	buf = buf[0:sz]
 	return string(buf)
 }
