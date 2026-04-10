@@ -29,23 +29,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/io/system"
 	"gioui.org/io/transfer"
-	"gioui.org/io/input"
 )
-
-func logf(message string, args ...interface{}) {
-	if input.Logger == nil {
-		return
-	}
-	input.Logger(message, args...)
-}
-
-var stacktraceBuf = make([]byte, 200000)
-func stack(allGoroutines bool) string {
-	buf := stacktraceBuf[:]
-	sz := runtime.Stack(buf, allGoroutines)
-	buf = buf[0:sz]
-	return string(buf)
-}
 
 type Win32ViewEvent struct {
 	HWND uintptr
@@ -690,18 +674,11 @@ func (w *window) NewContext() (context, error) {
 }
 
 func (w *window) ReadClipboard() error {
-	err := w.readClipboard()
-	if err != nil {
-		logf("gio: window.updateState: w.driver.ReadClipboard returned an error: %v", err)
-		input.IssueReproduced()
-	}
-	return err
+	return w.readClipboard()
 }
 
 func (w *window) readClipboard() error {
 	if err := windows.OpenClipboard(w.hwnd); err != nil {
-		logf("gio: window.readClipboard: windows.OpenClipboard failed with error: %v", err)
-		logf("gio: stacktrace: %s\n", stack(true))
 		return err
 	}
 	defer windows.CloseClipboard()
