@@ -95,6 +95,7 @@ func assertClipboardReadCmd(t *testing.T, router *Router, expected int) {
 	if router.ClipboardRequested() != (expected > 0) {
 		t.Error("missing requests")
 	}
+	router.SetClipboardNotRequested()
 }
 
 func assertClipboardReadDuplicated(t *testing.T, router *Router, expected int) {
@@ -105,6 +106,7 @@ func assertClipboardReadDuplicated(t *testing.T, router *Router, expected int) {
 	if router.ClipboardRequested() != false {
 		t.Error("duplicated requests")
 	}
+	router.SetClipboardNotRequested()
 }
 
 func assertClipboardWriteCmd(t *testing.T, router *Router, mimeExp, expected string) {
