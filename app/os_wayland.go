@@ -1024,14 +1024,14 @@ func gio_onPointerAxisDiscrete(data unsafe.Pointer, p *C.struct_wl_pointer, axis
 	}
 }
 
-func (w *window) ReadClipboard() {
+func (w *window) ReadClipboard() error {
 	if w.disp.readClipClose != nil {
-		return
+		return nil
 	}
 	w.disp.readClipClose = make(chan struct{})
 	r, err := w.disp.readClipboard()
 	if r == nil || err != nil {
-		return
+		return err
 	}
 	// Don't let slow clipboard transfers block event loop.
 	go func() {
@@ -1049,6 +1049,8 @@ func (w *window) ReadClipboard() {
 		case <-w.disp.readClipClose:
 		}
 	}()
+
+	return nil
 }
 
 func (w *window) WriteClipboard(mime string, s []byte) {

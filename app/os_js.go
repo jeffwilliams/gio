@@ -531,14 +531,15 @@ func (w *window) SetAnimating(anim bool) {
 	}
 }
 
-func (w *window) ReadClipboard() {
+func (w *window) ReadClipboard() error {
 	if w.clipboard.IsUndefined() {
-		return
+		return fmt.Errorf("Clipboard is undefined")
 	}
 	if w.clipboard.Get("readText").IsUndefined() {
-		return
+		return fmt.Errorf("Clipboard.readText is undefined")
 	}
 	w.clipboard.Call("readText", w.clipboard).Call("then", w.clipboardCallback)
+	return nil
 }
 
 func (w *window) WriteClipboard(mime string, s []byte) {

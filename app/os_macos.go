@@ -390,7 +390,7 @@ func (w *window) contextView() C.CFTypeRef {
 	return w.view
 }
 
-func (w *window) ReadClipboard() {
+func (w *window) ReadClipboard() error {
 	cstr := C.readClipboard()
 	if cstr != 0 {
 		defer C.CFRelease(cstr)
@@ -402,6 +402,7 @@ func (w *window) ReadClipboard() {
 			return io.NopCloser(strings.NewReader(content))
 		},
 	})
+	return nil
 }
 
 func (w *window) WriteClipboard(mime string, s []byte) {

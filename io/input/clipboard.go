@@ -37,10 +37,13 @@ func (q *clipboardQueue) WriteClipboard() (mime string, content []byte, ok bool)
 // to read the clipboard.
 func (q *clipboardQueue) ClipboardRequested(state clipboardState) bool {
 	req := len(state.receivers) > 0 && q.requested
-	q.requested = false
 	log("gio: clipboardQueue.ClipboardRequested: on return q.requested = false and len(state.receivers) = %d\n", len(state.receivers))
 	log("gio: stacktrace: %s\n", stack(false))
 	return req
+}
+
+func (q *clipboardQueue) SetClipboardNotRequested() {
+	q.requested = false
 }
 
 func (q *clipboardQueue) Push(state clipboardState, e event.Event) (clipboardState, []taggedEvent) {
@@ -68,16 +71,19 @@ func (q *clipboardQueue) ProcessReadClipboard(state clipboardState, tag event.Ta
 	if !q.requested && slices.Contains(state.receivers, tag) {
 		log("gio: issue reproduced. ProcessReadClipboard was called when q.requested is false but state.receivers contains the tag\n")
 		log("gio: stacktrace: %s\n", stack(false))
-		issueReproduced()
+		IssueReproduced()
 	}
-
-	q.requested = true
+	
+	// Disable original fix; testing the fix for when ReadClipboard returns false
+	//q.requested = true
 	if slices.Contains(state.receivers, tag) {
 		log("gio: clipboardQueue.ProcessReadClipboard: state.receivers contains tag. Returning same state\n")
 		return state
 	}
 	n := len(state.receivers)
 	state.receivers = append(state.receivers[:n:n], tag)
+	// Original fix comments this line out:
+	q.requested = true
 	log("gio: clipboardQueue.ProcessReadClipboard: state.receivers updated to contain %d items\n", len(state.receivers))
 	return state
 }

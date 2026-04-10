@@ -287,7 +287,7 @@ func onTouch(h C.uintptr_t, last C.int, touchRef C.CFTypeRef, phase C.NSInteger,
 	})
 }
 
-func (w *window) ReadClipboard() {
+func (w *window) ReadClipboard() error {
 	cstr := C.readClipboard()
 	defer C.CFRelease(cstr)
 	content := nsstringToString(cstr)
@@ -297,6 +297,7 @@ func (w *window) ReadClipboard() {
 			return io.NopCloser(strings.NewReader(content))
 		},
 	})
+	return nil
 }
 
 func (w *window) WriteClipboard(mime string, s []byte) {

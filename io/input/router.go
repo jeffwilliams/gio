@@ -33,7 +33,7 @@ func log(message string, args ...interface{}) {
 
 
 var IssueReproducedCallback func()
-func issueReproduced() {
+func IssueReproduced() {
 	if IssueReproducedCallback == nil {
 		return
 	}
@@ -811,6 +811,10 @@ func (q *Router) WriteClipboard() (mime string, content []byte, ok bool) {
 // to read the clipboard.
 func (q *Router) ClipboardRequested() bool {
 	return q.cqueue.ClipboardRequested(q.lastState().clipboardState)
+}
+
+func (q *Router) SetClipboardNotRequested() {
+	q.cqueue.SetClipboardNotRequested()
 }
 
 // Cursor returns the last cursor set.

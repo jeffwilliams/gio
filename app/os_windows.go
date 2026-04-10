@@ -689,11 +689,13 @@ func (w *window) NewContext() (context, error) {
 	return nil, errors.New("NewContext: no available GPU drivers")
 }
 
-func (w *window) ReadClipboard() {
+func (w *window) ReadClipboard() error {
 	err := w.readClipboard()
 	if err != nil {
 		logf("gio: window.updateState: w.driver.ReadClipboard returned an error: %v", err)
+		input.IssueReproduced()
 	}
+	return err
 }
 
 func (w *window) readClipboard() error {

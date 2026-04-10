@@ -1333,7 +1333,7 @@ func (w *window) WriteClipboard(mime string, s []byte) {
 	})
 }
 
-func (w *window) ReadClipboard() {
+func (w *window) ReadClipboard() error {
 	runInJVM(javaVM(), func(env *C.JNIEnv) {
 		c, err := callStaticObjectMethod(env, android.gioCls, android.mreadClipboard,
 			jvalue(android.appCtx))
@@ -1348,6 +1348,7 @@ func (w *window) ReadClipboard() {
 			},
 		})
 	})
+	return nil
 }
 
 func (w *window) Configure(options []Option) {

@@ -151,9 +151,10 @@ func (w *x11Window) SetAnimating(anim bool) {
 	w.animating = anim
 }
 
-func (w *x11Window) ReadClipboard() {
+func (w *x11Window) ReadClipboard() error {
 	C.XDeleteProperty(w.x, w.xw, w.atoms.clipboardContent)
 	C.XConvertSelection(w.x, w.atoms.clipboard, w.atoms.utf8string, w.atoms.clipboardContent, w.xw, C.CurrentTime)
+	return nil
 }
 
 func (w *x11Window) WriteClipboard(mime string, s []byte) {

@@ -188,7 +188,7 @@ type driver interface {
 	SetInputHint(mode key.InputHint)
 	NewContext() (context, error)
 	// ReadClipboard requests the clipboard content.
-	ReadClipboard()
+	ReadClipboard() error
 	// WriteClipboard requests a clipboard write.
 	WriteClipboard(mime string, s []byte)
 	// Configure the window.
